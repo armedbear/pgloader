@@ -29,9 +29,17 @@
     (:yes  t)
     (:no   nil)))
 
+;;; One should be able to compile without this, but that doesn't work.
+;;; Because OPEN-CONNECTION is a generic method?
+#+abcl
+(eval-when (:compile-toplevel)
+  (export (intern :mysql-local-connect :qmynd) :qmynd))
+  
 (defmethod open-connection ((myconn mysql-connection) &key)
   (setf (conn-handle myconn)
-        (if (and (consp (db-host myconn)) (eq :unix (car (db-host myconn))))
+        (if (and (consp (db-host myconn))
+                 (eq :unix (car (db-host myconn)))
+                 (not (eq (uiop::implementation-type) :abcl))) ;; ABCL doesn't currently support AF_UNIX
             (qmynd:mysql-local-connect :path (cdr (db-host myconn))
                                        :username (db-user myconn)
                                        :password (db-pass myconn)
